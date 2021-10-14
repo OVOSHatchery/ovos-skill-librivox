@@ -1,0 +1,21 @@
+{
+  "name": "Librivox Skill",
+  "skillname": "librivox",
+  "authorname": "JarbasSkills",
+  "foldername": "",
+  "url": "https://github.com/JarbasSkills/skill-librivox",
+  "branch": "dev",
+  "desktopFile": false,
+  "warning": "",
+  "systemDeps": false,
+  "platforms": [
+    "arm",
+    "arm64",
+    "i386",
+    "x86_64",
+    "ia64"
+  ],
+  "examples": [
+    "read the art of war"
+  ]
+}
