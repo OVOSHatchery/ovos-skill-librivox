@@ -1,10 +1,10 @@
 from os.path import join, dirname
 
+from audiobooker.scrappers.librivox import Librivox
 from ovos_plugin_common_play.ocp import MediaType, PlaybackType
 from ovos_utils.parse import fuzzy_match, MatchStrategy
 from ovos_workshop.skills.common_play import OVOSCommonPlaybackSkill, \
-    ocp_search
-from audiobooker.scrappers.librivox import Librivox
+    ocp_search, ocp_featured_media
 
 
 class LibrivoxSkill(OVOSCommonPlaybackSkill):
@@ -25,6 +25,11 @@ class LibrivoxSkill(OVOSCommonPlaybackSkill):
         return min(100, score)
 
     # common play
+    @ocp_featured_media()
+    def featured_media(self):
+        for book in Librivox.scrap_all_audiobooks(limit=50):
+            yield self._book2ocp(book)
+
     @ocp_search()
     def search_librivox(self, phrase, media_type):
         # match the request media_type
@@ -50,35 +55,37 @@ class LibrivoxSkill(OVOSCommonPlaybackSkill):
         for idx, book in enumerate(results):
             score = self.calc_score(phrase, book, idx=idx,
                                     base_score=base_score)
-            author = ", ".join([au.first_name + au.last_name for au in
-                                book.authors])
-            pl = [{
-                    "match_confidence": score,
-                    "media_type": MediaType.AUDIOBOOK,
-                    "uri": s,
-                    "artist": author,
-                    "playback": PlaybackType.AUDIO,
-                    "image": self.skill_pic,
-                    "bg_image": self.skill_bg,
-                    "skill_icon": self.skill_icon,
-                    "title": str(book.title) + f" (part {ch + 1})",
-                    "skill_id": self.skill_id
-                } for ch, s in enumerate(book.streams)]
+            yield self._book2ocp(book, score)
 
-            if pl:
-                yield {
-                    "match_confidence": score,
-                    "media_type": MediaType.AUDIOBOOK,
-                    "playback": PlaybackType.AUDIO,
-                    "playlist": pl,  # return full playlist result
-                    "length": book.runtime * 1000,
-                    "image": self.skill_pic,
-                    "artist": author,
-                    "bg_image": self.skill_bg,
-                    "skill_icon": self.skill_icon,
-                    "title": book.title,
-                    "skill_id": self.skill_id
-                }
+    def _book2ocp(self, book, score=50):
+        author = " ".join([au.first_name + au.last_name for au in
+                           book.authors])
+        pl = [{
+            "match_confidence": score,
+            "media_type": MediaType.AUDIOBOOK,
+            "uri": s,
+            "artist": author,
+            "playback": PlaybackType.AUDIO,
+            "image": self.skill_pic,
+            "bg_image": self.skill_bg,
+            "skill_icon": self.skill_icon,
+            "title": s.split("/")[-1].split(".")[0].replace("_", " "),
+            "skill_id": self.skill_id
+        } for ch, s in enumerate(book.streams)]
+
+        return {
+            "match_confidence": score,
+            "media_type": MediaType.AUDIOBOOK,
+            "playback": PlaybackType.AUDIO,
+            "playlist": pl,  # return full playlist result
+            "length": book.runtime * 1000,
+            "image": self.skill_pic,
+            "artist": author,
+            "bg_image": self.skill_bg,
+            "skill_icon": self.skill_icon,
+            "title": book.title,
+            "skill_id": self.skill_id
+        }
 
 
 def create_skill():
